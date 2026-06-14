@@ -60,27 +60,44 @@ OPTIMAL_THRESHOLD = 0.9999 # Calibrated from EER
 
 @st.cache_resource
 def load_model():
-    # PATCH: Explicitly pass custom objects to load_model
-    from tensorflow import keras
-    
-    class PatchedDense(keras.layers.Dense):
-        def __init__(self, **kwargs):
-            kwargs.pop('quantization_config', None)
-            super().__init__(**kwargs)
-            
-    class PatchedConv2D(keras.layers.Conv2D):
-        def __init__(self, **kwargs):
-            kwargs.pop('quantization_config', None)
-            super().__init__(**kwargs)
-
     model_path = r"model/best_model.keras"
     if not os.path.exists(model_path):
         return None
         
-    return keras.models.load_model(
-        model_path, 
-        custom_objects={'Dense': PatchedDense, 'Conv2D': PatchedConv2D}
-    )
+    # PATCH: Kaggle Keras 3 saves a 'quantization_config' that crashes older Keras versions.
+    # A .keras file is just a ZIP archive. We will literally edit the config.json inside it!
+    import zipfile
+    import json
+    
+    patched_path = r"model/patched_model.keras"
+    if not os.path.exists(patched_path):
+        try:
+            with zipfile.ZipFile(model_path, 'r') as z_in:
+                with zipfile.ZipFile(patched_path, 'w') as z_out:
+                    for item in z_in.infolist():
+                        if item.filename == 'config.json':
+                            config_data = z_in.read(item.filename).decode('utf-8')
+                            
+                            def remove_quant(d):
+                                if isinstance(d, dict):
+                                    d.pop('quantization_config', None)
+                                    for v in d.values():
+                                        remove_quant(v)
+                                elif isinstance(d, list):
+                                    for v in d:
+                                        remove_quant(v)
+                                        
+                            config = json.loads(config_data)
+                            remove_quant(config)
+                            z_out.writestr(item, json.dumps(config))
+                        else:
+                            z_out.writestr(item, z_in.read(item.filename))
+        except Exception as e:
+            st.error(f"Failed to patch model: {e}")
+            return None
+            
+    import tensorflow as tf
+    return tf.keras.models.load_model(patched_path)
 
 model = load_model()
 
