@@ -3,6 +3,7 @@ import tensorflow as tf
 import os
 import tempfile
 import time
+import math
 
 # UI Settings
 st.set_page_config(
@@ -109,9 +110,22 @@ elif uploaded_file is not None:
                 # Simulate loading for better UX
                 time.sleep(1)
                 
-                prediction_prob = model.predict(input_data)[0][0]
+                prediction_prob = float(model.predict(input_data)[0][0])
+                
+                # Math logic for confidence: convert probability to logit to calculate 
+                # distance from the threshold, then apply sigmoid. This gives sensible 
+                # symmetrical confidence percentages around the heavily skewed 0.9999 boundary.
+                prob_clamped = max(1e-7, min(1.0 - 1e-7, prediction_prob))
+                thresh_clamped = max(1e-7, min(1.0 - 1e-7, OPTIMAL_THRESHOLD))
+                
+                logit_prob = math.log(prob_clamped / (1.0 - prob_clamped))
+                logit_thresh = math.log(thresh_clamped / (1.0 - thresh_clamped))
+                
+                distance = logit_prob - logit_thresh
+                pseudo_prob = 1.0 / (1.0 + math.exp(-distance))
+                
                 is_real = prediction_prob >= OPTIMAL_THRESHOLD
-                confidence = prediction_prob if is_real else 1 - prediction_prob
+                confidence = pseudo_prob if is_real else (1.0 - pseudo_prob)
                 
                 # Display Results
                 st.markdown("---")
