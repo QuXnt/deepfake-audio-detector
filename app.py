@@ -64,40 +64,19 @@ def load_model():
     if not os.path.exists(model_path):
         return None
         
-    # PATCH: Kaggle Keras 3 saves a 'quantization_config' that crashes older Keras versions.
-    # A .keras file is just a ZIP archive. We will literally edit the config.json inside it!
-    import zipfile
-    import json
-    
-    patched_path = r"model/patched_model.keras"
-    if not os.path.exists(patched_path):
-        try:
-            with zipfile.ZipFile(model_path, 'r') as z_in:
-                with zipfile.ZipFile(patched_path, 'w') as z_out:
-                    for item in z_in.infolist():
-                        if item.filename == 'config.json':
-                            config_data = z_in.read(item.filename).decode('utf-8')
-                            
-                            def remove_quant(d):
-                                if isinstance(d, dict):
-                                    d.pop('quantization_config', None)
-                                    for v in d.values():
-                                        remove_quant(v)
-                                elif isinstance(d, list):
-                                    for v in d:
-                                        remove_quant(v)
-                                        
-                            config = json.loads(config_data)
-                            remove_quant(config)
-                            z_out.writestr(item, json.dumps(config))
-                        else:
-                            z_out.writestr(item, z_in.read(item.filename))
-        except Exception as e:
-            st.error(f"Failed to patch model: {e}")
+    # Debug: Check if the file got corrupted by Git LFS on Streamlit Cloud
+    try:
+        import zipfile
+        if not zipfile.is_zipfile(model_path):
+            with open(model_path, "rb") as f:
+                header = f.read(100)
+            st.error(f"GitHub corruption detected (likely Git LFS). First 100 bytes: {header}")
             return None
-            
+    except Exception as e:
+        pass
+        
     import tensorflow as tf
-    return tf.keras.models.load_model(patched_path)
+    return tf.keras.models.load_model(model_path)
 
 model = load_model()
 
