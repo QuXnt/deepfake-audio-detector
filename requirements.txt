@@ -1,4 +1,4 @@
-tensorflow-cpu
+tensorflow
 librosa
 streamlit
 scikit-learn
