@@ -61,6 +61,15 @@ OPTIMAL_THRESHOLD = 0.9999 # Calibrated from EER
 @st.cache_resource
 def load_model():
     model_path = r"model/best_model.keras"
+    
+    # DEBUG: Print the directory contents to screen
+    st.error(f"Current directory: {os.getcwd()}")
+    st.error(f"Files in root: {os.listdir('.')}")
+    if os.path.exists('model'):
+        st.error(f"Files in model/: {os.listdir('model')}")
+    else:
+        st.error("Directory 'model' does not exist!")
+
     if not os.path.exists(model_path):
         return None
         
