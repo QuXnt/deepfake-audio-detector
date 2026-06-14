@@ -61,28 +61,8 @@ OPTIMAL_THRESHOLD = 0.9999 # Calibrated from EER
 @st.cache_resource
 def load_model():
     model_path = r"model/best_model.keras"
-    
-    # DEBUG: Print the directory contents to screen
-    st.error(f"Current directory: {os.getcwd()}")
-    st.error(f"Files in root: {os.listdir('.')}")
-    if os.path.exists('model'):
-        st.error(f"Files in model/: {os.listdir('model')}")
-    else:
-        st.error("Directory 'model' does not exist!")
-
     if not os.path.exists(model_path):
         return None
-        
-    # Debug: Check if the file got corrupted by Git LFS on Streamlit Cloud
-    try:
-        import zipfile
-        if not zipfile.is_zipfile(model_path):
-            with open(model_path, "rb") as f:
-                header = f.read(100)
-            st.error(f"GitHub corruption detected (likely Git LFS). First 100 bytes: {header}")
-            return None
-    except Exception as e:
-        pass
         
     import tensorflow as tf
     return tf.keras.models.load_model(model_path)
