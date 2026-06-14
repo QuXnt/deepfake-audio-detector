@@ -60,7 +60,23 @@ OPTIMAL_THRESHOLD = 0.9999 # Calibrated from EER
 
 @st.cache_resource
 def load_model():
-    # Replace with relative path if deployed
+    # PATCH: Kaggle saves Keras 3 models with 'quantization_config' which older Keras versions reject.
+    # We intercept layer deserialization and pop this argument to prevent crashing.
+    import keras
+    
+    class PatchedDense(keras.layers.Dense):
+        def __init__(self, **kwargs):
+            kwargs.pop('quantization_config', None)
+            super().__init__(**kwargs)
+            
+    class PatchedConv2D(keras.layers.Conv2D):
+        def __init__(self, **kwargs):
+            kwargs.pop('quantization_config', None)
+            super().__init__(**kwargs)
+
+    keras.utils.get_custom_objects()['Dense'] = PatchedDense
+    keras.utils.get_custom_objects()['Conv2D'] = PatchedConv2D
+
     model_path = r"model/best_model.keras"
     if not os.path.exists(model_path):
         return None
