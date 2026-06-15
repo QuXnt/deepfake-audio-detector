@@ -83,3 +83,10 @@ Upload an audio file in the browser interface to see the prediction and confiden
 - `README.md`: Project documentation.
 - `model/`: Directory containing the saved model (`best_model.keras`).
 - `report.md`: Generated performance report (after running evaluation).
+
+### Live Deployment Links
+- **App:** https://deepfake-audio-detector-marsiitr.streamlit.app/
+
+## Demonstration
+Check out the video demonstration of the web app detecting whether a sample audio is genuine or fake:
+https://drive.google.com/file/d/1Xm3QhYvkl2PE9xtv4Z6eQiO4vbUgATa5/view?usp=sharing
